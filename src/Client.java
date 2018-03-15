@@ -1,9 +1,11 @@
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +35,7 @@ public class Client {
 		System.out.println(port);
 		Socket socket = new Socket(host, port);
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-		BufferedReader inFromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
 		System.out.println("GET " + path + " HTTP/1.1\r\n"
 				+ "Host: " + host + "\r\n\r\n");
 		out.writeBytes("GET " + path + " HTTP/1.1\r\n"
@@ -54,7 +56,7 @@ public class Client {
 		writer.close();
 	}
 	
-	public static int getContentLength(BufferedReader inFromServer) throws IOException{
+	public static int getContentLength(DataInputStream inFromServer) throws IOException{
 		String nextLine = inFromServer.readLine();
 		String header = "Content-Length:";
 		while(!nextLine.startsWith(header)){
@@ -68,7 +70,7 @@ public class Client {
 		return Integer.parseInt(nextLine);
 	}
 	
-	public static String getContent(BufferedReader inFromServer, int length) throws IOException{
+	public static String getContent(DataInputStream inFromServer, int length) throws IOException{
 		int[] output = new int[length];
 		String j;
 		j = inFromServer.readLine();
@@ -86,17 +88,41 @@ public class Client {
 		return response.toString();
 	}
 	
+	public static byte[] getContentForImage(DataInputStream inFromServer, int length) throws IOException{
+		int[] output = new int[length];
+		String j;
+		j = inFromServer.readLine();
+		while(!j.equals("")){
+			System.out.println(j);
+			j = inFromServer.readLine();
+			continue;
+		}
+		System.out.println(length);
+		byte[] response = new byte[length];
+		for(int i = 0; i<length; i++) {
+			response[i] = (byte) inFromServer.read();
+
+		}
+		return response;
+	}
+	
 	public static void writeImageToFile(String host, String imagePath, Socket socket) throws IOException{
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-		BufferedReader inFromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
 		out.writeBytes("GET " + imagePath + " HTTP/1.1\r\n"
 				+ "Host: " + host + "\r\n\r\n");
 		int length = getContentLength(inFromServer);
-		String content = getContent(inFromServer, length);
-		writeOutputToFile(content, "imageInfo.txt");
-		File file= new File("imageInfo.txt");
-		BufferedImage image = ImageIO.read(file);
-		File outputFile= new File("image.jpeg");
-        ImageIO.write(image, "jpeg", outputFile);
+		byte[] content = getContentForImage(inFromServer, length);
+		//try (FileOutputStream fos = new FileOutputStream(imagePath.substring(1))) {
+		//	   fos.write(content);
+		//}
+		final File file = new File(imagePath.substring(1));
+        final FileOutputStream fileOut = new FileOutputStream(file );
+        fileOut.write(content);
+        fileOut.flush();
+        fileOut.close();
+		//PrintWriter writer = new PrintWriter(imagePath.substring(1));
+		//writer.print(content);
+		//writer.close();
 	}
 }
