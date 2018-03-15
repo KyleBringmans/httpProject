@@ -1,15 +1,15 @@
-import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URI;
@@ -17,6 +17,8 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
 import javax.imageio.ImageIO;
+
+import org.jsoup.Jsoup;
 
 public class Client {
 	public static void main(String argv[]) throws UnknownHostException, IOException, URISyntaxException{
@@ -44,9 +46,19 @@ public class Client {
 		String content = getContent(inFromServer, length);
 		writeOutputToFile(content, "response.html");
 
-		writeImageToFile(host, "/tos-jwall.jpg", socket);
+		File test = new File("response.html");
+		Document doc = Jsoup.parse(test, "UTF-8");
+		Elements elements = doc.getElementsByTag("img");
+		String[] imgPaths = new String[elements.size()];
+		for(int i = 0; i < elements.size(); i++){
+			imgPaths[i] = findImagePath(elements.get(i));
+		}
+		for(String imgPath : imgPaths){
+			writeImageToFile(host, imgPath, socket);
+		}
 		
 		socket.close();
+
 	}
 	
 	
@@ -88,6 +100,7 @@ public class Client {
 		return response.toString();
 	}
 	
+	@SuppressWarnings("deprecation")
 	public static byte[] getContentForImage(DataInputStream inFromServer, int length) throws IOException{
 		int[] output = new int[length];
 		String j;
@@ -116,6 +129,7 @@ public class Client {
 		//try (FileOutputStream fos = new FileOutputStream(imagePath.substring(1))) {
 		//	   fos.write(content);
 		//}
+		System.out.println("sqkdjhgfkjsqdgfbjkhsqdbfjkhsqdbfjhqksdbfvhjksqdvkhjqsbvjhbqsdvbjqskdvbjqdshv" + imagePath.substring(1));
 		final File file = new File(imagePath.substring(1));
         final FileOutputStream fileOut = new FileOutputStream(file );
         fileOut.write(content);
@@ -124,5 +138,25 @@ public class Client {
 		//PrintWriter writer = new PrintWriter(imagePath.substring(1));
 		//writer.print(content);
 		//writer.close();
+	}
+	
+	public static String findImagePath(Element el){
+		String path = el.toString();
+		String[] splitted = path.split("src=\"");
+		path = splitted[1];
+		splitted = path.split("\"");
+		path = splitted[0];
+		String[] folders = path.split("/");
+		String newFolders = "";
+		for(int i = 0; i < folders.length -1; i++){
+			newFolders += folders[i] + "/";
+		}
+		newFolders = newFolders.substring(0, newFolders.length()-1);
+		new File(newFolders).mkdirs();
+		//path = path.substring("<img SRC=\"".length());
+		//path = path.substring(0, path.length() - ">".length()-1);
+		//path = "/" + path;
+		System.out.println("kjghvjsdgfuskdgfkjdfbjk     " + path);
+		return "/" + path;
 	}
 }
