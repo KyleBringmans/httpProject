@@ -5,12 +5,13 @@ import java.util.Map;
 
 public class HeaderData {
 
-    public HeaderData(DataInputStream stream) throws IOException {
+    public HeaderData(DataInputStream stream, boolean print) throws IOException {
 
         String nextLine = stream.readLine();
         while(!nextLine.equals("")){
-            System.out.println(nextLine);
-
+            if(print){
+                System.out.println(nextLine);
+            }
             String[] data = nextLine.split(": ");
             this.map.put(data[0],data[1]);
 
