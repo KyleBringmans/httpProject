@@ -108,7 +108,6 @@ public class Client {
 		while(!j.equals("")){
 			System.out.println(j);
 			j = inFromServer.readLine();
-			continue;
 		}
 		System.out.println(length);
 		byte[] response = new byte[length];
@@ -130,8 +129,21 @@ public class Client {
 		//	   fos.write(content);
 		//}
 		System.out.println("sqkdjhgfkjsqdgfbjkhsqdbfjkhsqdbfjhqksdbfvhjksqdvkhjqsbvjhbqsdvbjqskdvbjqdshv" + imagePath.substring(1));
-		final File file = new File(imagePath.substring(1));
-        final FileOutputStream fileOut = new FileOutputStream(file );
+		
+		String[] temp = imagePath.split("/");
+		String dirName = imagePath.substring(0, imagePath.length() - temp[temp.length-1].length());
+		dirName = dirName.replace("%20", " ");
+
+		System.out.println(dirName);
+		
+		String fileName = temp[temp.length-1];
+		File dir = new File (System.getProperty("user.dir") + dirName);
+		File file = new File (dir, fileName);
+		
+		System.out.println(file.getCanonicalPath());
+
+		//final File file = new File(imagePath);
+        final FileOutputStream fileOut = new FileOutputStream(file);
         fileOut.write(content);
         fileOut.flush();
         fileOut.close();
@@ -151,8 +163,11 @@ public class Client {
 		for(int i = 0; i < folders.length -1; i++){
 			newFolders += folders[i] + "/";
 		}
-		newFolders = newFolders.substring(0, newFolders.length()-1);
-		new File(newFolders).mkdirs();
+		if(newFolders.length() > 0){
+			newFolders = newFolders.substring(0, newFolders.length()-1);
+			newFolders = newFolders.replace("%20", " ");
+			new File(newFolders).mkdirs();
+		}
 		//path = path.substring("<img SRC=\"".length());
 		//path = path.substring(0, path.length() - ">".length()-1);
 		//path = "/" + path;
