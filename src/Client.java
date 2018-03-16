@@ -16,12 +16,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
-import javax.imageio.ImageIO;
-
-import org.jsoup.Jsoup;
-
 public class Client {
-	public static void main(String argv[]) throws UnknownHostException, IOException, URISyntaxException{
+	public static void main(String argv[]) throws IOException, URISyntaxException{
 		if(argv.length != 3) throw new IOException();
 		String httpCommand = argv[0];
 		String uriString = argv[1];
@@ -35,11 +31,15 @@ public class Client {
 		System.out.println(path);
 		int port = Integer.parseInt(argv[2]);
 		System.out.println(port);
+
+		// Establish connection with server
 		Socket socket = new Socket(host, port);
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
-		System.out.println("GET " + path + " HTTP/1.1\r\n"
-				+ "Host: " + host + "\r\n\r\n");
+
+		// System.out.println("GET " + path + " HTTP/1.1\r\n"+ "Host: " + host + "\r\n\r\n");
+
+		// Get html code from the website
 		out.writeBytes("GET " + path + " HTTP/1.1\r\n"
 				+ "Host: " + host + "\r\n\r\n");
 		int length = getContentLength(inFromServer);
@@ -68,30 +68,16 @@ public class Client {
 		writer.close();
 	}
 	
-	public static int getContentLength(DataInputStream inFromServer) throws IOException{
-		String nextLine = inFromServer.readLine();
-		String header = "Content-Length:";
-		while(!nextLine.startsWith(header)){
-			System.out.println(nextLine);
-			nextLine = inFromServer.readLine();
-		}
-		//remove the text of the header
-		nextLine = nextLine.substring(header.length());
-		//remove the leftover whitespace
-		nextLine = nextLine.replaceAll(" ", "");
-		return Integer.parseInt(nextLine);
-	}
-	
 	public static String getContent(DataInputStream inFromServer, int length) throws IOException{
-		int[] output = new int[length];
-		String j;
-		j = inFromServer.readLine();
+		// Skip headers
+		String j = inFromServer.readLine();
 		while(!j.equals("")){
 			System.out.println(j);
 			j = inFromServer.readLine();
 			continue;
 		}
 		System.out.println(length);
+		// Get data from server
 		StringBuilder response = new StringBuilder();
 		for(int i = 0; i<length; i++) {
 			response.append((char) inFromServer.read());
@@ -102,18 +88,16 @@ public class Client {
 	
 	@SuppressWarnings("deprecation")
 	public static byte[] getContentForImage(DataInputStream inFromServer, int length) throws IOException{
-		int[] output = new int[length];
-		String j;
-		j = inFromServer.readLine();
+		// Remove headers
+		String j = inFromServer.readLine();
 		while(!j.equals("")){
-			System.out.println(j);
+			// System.out.println(j);
 			j = inFromServer.readLine();
 		}
 		System.out.println(length);
 		byte[] response = new byte[length];
 		for(int i = 0; i<length; i++) {
 			response[i] = (byte) inFromServer.read();
-
 		}
 		return response;
 	}
@@ -129,17 +113,17 @@ public class Client {
 		//	   fos.write(content);
 		//}
 		System.out.println("sqkdjhgfkjsqdgfbjkhsqdbfjkhsqdbfjhqksdbfvhjksqdvkhjqsbvjhbqsdvbjqskdvbjqdshv" + imagePath.substring(1));
-		
+
 		String[] temp = imagePath.split("/");
 		String dirName = imagePath.substring(0, imagePath.length() - temp[temp.length-1].length());
 		dirName = dirName.replace("%20", " ");
 
 		System.out.println(dirName);
-		
+
 		String fileName = temp[temp.length-1];
 		File dir = new File (System.getProperty("user.dir") + dirName);
 		File file = new File (dir, fileName);
-		
+
 		System.out.println(file.getCanonicalPath());
 
 		//final File file = new File(imagePath);
@@ -154,10 +138,10 @@ public class Client {
 	
 	public static String findImagePath(Element el){
 		String path = el.toString();
-		String[] splitted = path.split("src=\"");
-		path = splitted[1];
-		splitted = path.split("\"");
-		path = splitted[0];
+		String[] split = path.split("src=\"");
+		path = split[1];
+		split = path.split("\"");
+		path = split[0];
 		String[] folders = path.split("/");
 		String newFolders = "";
 		for(int i = 0; i < folders.length -1; i++){
