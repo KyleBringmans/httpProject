@@ -29,21 +29,59 @@ class Task implements Runnable {
         try {
 			this.inputs = new DataInputStream(client.getInputStream());
 	        this.outputs = new DataOutputStream(client.getOutputStream());
-	        outputs.write(("test").getBytes());
-	        Thread.sleep(5000);
+	        String firstLine = this.inputs.readLine();
+	        String[] firstLineSplitted = firstLine.split(" ");
+			if(firstLineSplitted.length != 3) throw new IOException();
+	        String operation = firstLineSplitted[0];
+	        String path = firstLineSplitted[1];
+	        String protocol = firstLineSplitted[2];
+	        HeaderData headers = new HeaderData(this.inputs, false);
+	        if(operation == "GET"){
+	        	this.handleGet(path, protocol);
+	        }
+	        else if(operation == "HEAD"){
+	        	this.handleHead(path, protocol);
+	        }
+	        else if(operation == "PUT"){
+	        	this.handlePut(path, protocol);
+	        }
+	        else if(operation == "POST"){
+	        	this.handlePost(path, protocol);
+	        }
+	        else{
+	        	//TODO ik denk dat er dan zo een status code geprint moet worden?
+	        }
+	        
 	        inputs.close();
 	        outputs.close();
 	        System.out.println("t is gebeurd");
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
     }
 
-    private Socket client;
+    private void handlePost(String path, String protocol) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void handlePut(String path, String protocol) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void handleHead(String path, String protocol) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void handleGet(String path, String protocol) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private Socket client;
     private DataInputStream inputs;
     private DataOutputStream outputs;
 }
