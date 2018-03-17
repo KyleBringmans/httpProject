@@ -28,15 +28,17 @@ public class Client {
 			path = "/";
 		}
 		int port = Integer.parseInt(argv[2]);
+		System.out.println(port);
 
 		// Establish connection with server
-		Socket socket = new Socket(host, port);
+		Socket socket = new Socket("localhost", port);
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
 		// Get html code from the website
 		out.writeBytes(httpCommand + " " + path + " HTTP/1.1\r\n"
 				+ "Host: " + host + "\r\n\r\n");
 
+		System.out.println(inFromServer.readLine());
 		if(httpCommand.equals("GET")){
 			get(inFromServer,socket,host);
 		}
