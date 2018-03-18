@@ -49,6 +49,13 @@ public class Client {
 
 	}
 
+	/**
+	 * Handle the GET command of the client
+	 * @param inFromServer Stream of data from server
+	 * @param socket Socket of where the connection needs to be established
+	 * @param host The host name
+	 * @throws IOException
+	 */
 	public static void get(DataInputStream inFromServer, Socket socket, String host) throws IOException {
 		System.out.println(inFromServer.readLine());
 		HeaderData headers = new HeaderData(inFromServer,true);
@@ -71,17 +78,35 @@ public class Client {
 
 	}
 
+	/**
+	 * Handle the HEAD command of the client
+	 * @param inFromServer Stream of data from server
+	 * @throws IOException
+	 */
 	public static void head(DataInputStream inFromServer) throws IOException {
 		System.out.println(inFromServer.readLine());
 		new HeaderData(inFromServer,true);
 	}
-	
+
+	/**
+	 * Write some data to a file
+	 * @param content The content of the to-be file
+	 * @param fileName The file name
+	 * @throws FileNotFoundException
+	 */
 	public static void writeOutputToFile(String content, String fileName) throws FileNotFoundException{
 		PrintWriter writer = new PrintWriter(fileName);
 		writer.print(content);
 		writer.close();
 	}
-	
+
+	/**
+	 * Get content from a server after sending an initial GET request
+	 * @param inFromServer Stream of data from server
+	 * @param length Length of the data
+	 * @return The html data from the server hosted website
+	 * @throws IOException
+	 */
 	public static String getContent(DataInputStream inFromServer, int length) throws IOException{
 		// Get data from server
 		StringBuilder response = new StringBuilder();
@@ -93,6 +118,9 @@ public class Client {
 	}
 	
 	@SuppressWarnings("deprecation")
+	/**
+	 * Get the content of the image???
+	 */
 	public static byte[] getContentForImage(DataInputStream inFromServer, int length) throws IOException{
 		// Read in data
 		byte[] response = new byte[length];
@@ -101,7 +129,14 @@ public class Client {
 		}
 		return response;
 	}
-	
+
+	/**
+	 * Establish connection with host and save imageFile embedded in website
+	 * @param host The host
+	 * @param imagePath The path of where the image needs to be stored
+	 * @param socket At which socket the connection needs to be established
+	 * @throws IOException
+	 */
 	public static void writeImageToFile(String host, String imagePath, Socket socket) throws IOException{
 		// Make connection
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
@@ -132,8 +167,13 @@ public class Client {
         fileOut.close();
 
 	}
-	
+
+	/**
+	 * @param el Part of parsed html code where image path needs to be extracted from
+	 * @return The image path of the element
+	 */
 	public static String findImagePath(Element el){
+		// Parse the image path out of the html command
 		String path = el.toString();
 		String[] split = path.split("src=\"");
 		path = split[1];
@@ -141,11 +181,13 @@ public class Client {
 		path = split[0];
 		String[] folders = path.split("/");
 
+		// Make the folder names
 		String newFolders = "";
 		for(int i = 0; i < folders.length -1; i++){
 			newFolders += folders[i] + "/";
 		}
 
+		// Make the new folders
 		if(newFolders.length() > 0){
 			newFolders = newFolders.substring(0, newFolders.length()-1);
 			newFolders = newFolders.replace("%20", " ");
@@ -154,5 +196,5 @@ public class Client {
 
 		return "/" + path;
 	}
-	//TODO content length not in header
+	//TODO handle case where content length not in header
 }
