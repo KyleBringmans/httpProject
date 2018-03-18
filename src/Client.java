@@ -31,7 +31,7 @@ public class Client {
 		System.out.println(port);
 
 		// Establish connection with server
-		Socket socket = new Socket(host, port);
+		Socket socket = new Socket("localhost", port);
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
 		// Get html code from the website
