@@ -15,7 +15,10 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class Server {
-	
+
+	/**
+	 * Create new threads for each http request
+	 */
     public static void main(String argv[]) throws IOException, URISyntaxException {
         // Initialize a socket at port X
         ServerSocket socket = new ServerSocket(3000);
@@ -32,7 +35,10 @@ class Task implements Runnable {
         this.client = client;
     }
 
-    @Override
+	/**
+	 * Parse commands and choose correct function to handle request
+	 */
+	@Override
     public void run(){
         try {
 			this.inputs = new DataInputStream(client.getInputStream());
@@ -70,16 +76,32 @@ class Task implements Runnable {
 		}
     }
 
-    private void handlePost(String path, String protocol) {
+	/**
+	 * Handles the POST request
+	 * @param path The path to the file
+	 * @param protocol
+	 */
+	private void handlePost(String path, String protocol) {
 		// TODO Add text to end of file
 		
 	}
 
+	/**
+	 * Handles the PUT request
+	 * @param path The path to the file
+	 * @param protocol
+	 */
 	private void handlePut(String path, String protocol) {
 		// TODO Add a new file with the text
 		
 	}
 
+	/**
+	 * Handles the HEAD request
+	 * @param path The path to the file
+	 * @param protocol
+	 * @throws IOException
+	 */
 	private void handleHead(String path, String protocol) throws IOException {
 		File f = new File(path);
 		System.out.println(path);
@@ -103,6 +125,12 @@ class Task implements Runnable {
 		
 	}
 
+	/**
+	 * Handle the GET request
+	 * @param path The path to the file
+	 * @param protocol
+	 * @throws IOException
+	 */
 	private void handleGet(String path, String protocol) throws IOException {
 		// TODO Send the html file of one of the hosted websites, DON'T FORGET THE HEADERS!
 		this.handleHead(path, protocol);
@@ -119,7 +147,10 @@ class Task implements Runnable {
 			buffr.close();
 		}
 	}
-	
+
+	/**
+	 * @return the current time in the correct format
+	 */
 	private String getServerTime() {
 	    Calendar calendar = Calendar.getInstance();
 	    SimpleDateFormat dateFormat = new SimpleDateFormat(
@@ -127,7 +158,12 @@ class Task implements Runnable {
 	    dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
 	    return dateFormat.format(calendar.getTime());
 	}
-	
+
+	/**
+	 * Get the extension of the requested file
+	 * @param file The file of which the exstension is requested
+	 * @return The extension of the requested file
+	 */
 	private String getFileExtension(File file) {
 	    String name = file.getName();
 	    try {

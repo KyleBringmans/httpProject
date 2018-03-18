@@ -14,7 +14,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+
 
 public class Client {
 	public static void main(String argv[]) throws IOException, URISyntaxException{
@@ -66,6 +66,8 @@ public class Client {
 		writeOutputToFile(content, "response.html");
 
 		File test = new File("response.html");
+
+		// Parse the html input so images can be found
 		Document doc = Jsoup.parse(test, "UTF-8");
 		Elements elements = doc.getElementsByTag("img");
 		String[] imgPaths = new String[elements.size()];
@@ -117,7 +119,6 @@ public class Client {
 		return response.toString();
 	}
 	
-	@SuppressWarnings("deprecation")
 	/**
 	 * Get the content of the image???
 	 */
