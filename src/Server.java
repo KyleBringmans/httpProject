@@ -49,35 +49,34 @@ class Task implements Runnable {
 	        	this.handlePost(path, protocol);
 	        }
 	        else{
-	        	//TODO ik denk dat er dan zo een status code geprint moet worden?
+	        	System.out.println("400 Bad Request");
 	        }
 	        
 	        inputs.close();
 	        outputs.close();
-	        System.out.println("t is gebeurd");
+	        System.out.println("t is gebeurd"); //lol
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.out.println("Something wrong with the socket of the server");
 		}
     }
 
     private void handlePost(String path, String protocol) {
-		// TODO Auto-generated method stub
+		// TODO Add text to end of file
 		
 	}
 
 	private void handlePut(String path, String protocol) {
-		// TODO Auto-generated method stub
+		// TODO Add a new file with the text
 		
 	}
 
 	private void handleHead(String path, String protocol) {
-		// TODO Auto-generated method stub
+		// TODO Send headers related to the requested html file
 		
 	}
 
 	private void handleGet(String path, String protocol) {
-		// TODO Auto-generated method stub
+		// TODO Send the html file of one of the hosted websites, DON'T FORGET THE HEADERS!
 		
 	}
 
