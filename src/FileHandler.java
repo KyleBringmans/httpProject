@@ -8,7 +8,7 @@ public class FileHandler {
 
     }
 
-    public static String getContent(DataInputStream in, int length) throws IOException {
+    public String getContent(DataInputStream in, int length) throws IOException {
         // Get data from client
         StringBuilder response = new StringBuilder();
         for(int i = 0; i<length; i++) {
@@ -18,7 +18,10 @@ public class FileHandler {
         return response.toString();
     }
 
-    public static void writeOutputToFile(String content, String pathName) throws IOException {
+    public void writeOutputToFile(String content, String pathName) throws IOException {
+    	//TODO: i put this here so it will have to be removed some places or it will be called twice
+    	makeFolders(pathName);
+    	System.out.println(pathName);
         String[] inputs = pathName.split("/");
         // Find directory name
         String dirName = pathName.substring(0, pathName.length() - inputs[inputs.length-1].length());

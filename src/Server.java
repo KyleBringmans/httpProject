@@ -52,15 +52,20 @@ class Task implements Runnable {
 			if(firstLineSplitted.length != 3) throw new IOException();
 	        String operation = firstLineSplitted[0];
 	        String path = firstLineSplitted[1];
-	        if(path.equals("/")) path = "index.html";
+	        if(path.equals("/")) path = "/index.html";
+	        path = path.substring(1);
 	        String protocol = firstLineSplitted[2];
 	        HeaderData headers = new HeaderData(this.inputs, false);
 	        System.out.println(operation);
 	        if(operation.equals("GET")){
 	        	this.handleGet(path);
+		        inputs.close();
+		        outputs.close();
 	        }
 	        else if(operation.equals("HEAD")){
 	        	this.handleHead(path);
+		        inputs.close();
+		        outputs.close();
 	        }
 	        else if(operation.equals("PUT")){
 	        	this.handlePut(path, headers);
@@ -73,8 +78,6 @@ class Task implements Runnable {
 	        }
 	        //TODO handle wrong http version requests: ex. HTTP/1.2
 	        
-	        inputs.close();
-	        outputs.close();
 	        System.out.println("t is gebeurd"); //lol
 		} catch (IOException e1) {
 			System.out.println("Something wrong with the socket of the server");
@@ -91,7 +94,7 @@ class Task implements Runnable {
 		int length = headers.getContentLength();
 		FileHandler handler = new FileHandler();
 		String content = handler.getContent(this.inputs,length);
-		handler.writeOutputToFile(content,f.getName());
+		handler.writeOutputToFile(content,path);
 
 		// Initial server response
 		outputs.writeBytes("HTTP/1.1 200 OK\r\n");
@@ -99,6 +102,9 @@ class Task implements Runnable {
 		// Send headers
 		outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
 		outputs.writeBytes("\r\n");
+
+        inputs.close();
+        outputs.close();
 	}
 
 
@@ -141,6 +147,7 @@ class Task implements Runnable {
 		System.out.println(path);
 		if(f.exists() && !f.isDirectory()) { 
 		    try {
+		    	System.out.println("length: " + f.length());
 				outputs.writeBytes("HTTP/1.1" + " 200 OK\r\n");
 				outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
 				outputs.writeBytes("Content-Length: " + f.length() + "\r\n");

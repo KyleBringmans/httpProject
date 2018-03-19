@@ -33,7 +33,6 @@ public class Client {
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
 
-		System.out.println(inFromServer.readLine());
 
 		if(httpCommand.equals("GET")){
 			out.writeBytes(httpCommand + " " + path + " HTTP/1.1\r\n"
@@ -71,7 +70,7 @@ public class Client {
 		FileHandler handler = new FileHandler();
 		String content = handler.getContent(inFromServer, length);
 		handler.writeOutputToFile(content, "response.html");
-
+		
 		File test = new File("response.html");
 
 		// Parse the html input so images can be found
@@ -110,7 +109,7 @@ public class Client {
 		String content = "";
 		String line = in.readLine();
 		while(!line.equals("")){
-			content += line + "\r\n";
+			content += line + "\n";
 			line = in.readLine();
 		}
 
@@ -184,7 +183,11 @@ public class Client {
 	public static String findImagePath(Element el){
 		// Parse the image path out of the html command
 		String path = el.toString();
+		System.out.println(path);
 		String[] split = path.split("src=\"");
+		if(split.length == 1){
+			split = path.split("SRC=\"");
+		}
 		path = split[1];
 		split = path.split("\"");
 		path = split[0];
