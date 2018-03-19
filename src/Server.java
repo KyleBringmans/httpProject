@@ -1,5 +1,3 @@
-import javax.xml.crypto.Data;
-
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -24,39 +22,71 @@ public class Server {
 	 * Create new threads for each http request
 	 */
     public static void main(String argv[]) throws IOException, URISyntaxException {
+    	long timeout = 10000;
         // Initialize a socket at port X
         ServerSocket socket = new ServerSocket(3000);
 
-        while(true){
+		long start = System.currentTimeMillis();
+		long end = start + timeout;
+		// Check for server time-out and take requests
+		while(System.currentTimeMillis() < end){
+			//TODO dit werkt niet meer denk ik, we moeten op een of andere manier wachten op een request, hoe?
             Socket client = socket.accept();
             new Thread(new Task(client)).start();
         }
+        // TODO wat met de client socket? moet die ook dicht?
+        socket.close();
     }
 }
 
+/**
+ * Task class
+ */
 class Task implements Runnable {
     public Task(Socket client) throws IOException {
         this.client = client;
     }
 
 	/**
-	 * Parse commands and choose correct function to handle request
+	 * Parse commands and choose correct function to handle http request
 	 */
 	@Override
     public void run(){
         try {
+
+        	// Create streams for connection
 			this.inputs = new DataInputStream(client.getInputStream());
 	        this.outputs = new DataOutputStream(client.getOutputStream());
+
+	        // Read first input from client
 	        String firstLine = this.inputs.readLine();
 	        String[] firstLineSplitted = firstLine.split(" ");
+
+	        // Check for legal client request
 			if(firstLineSplitted.length != 3) throw new IOException();
 	        String operation = firstLineSplitted[0];
+
 	        String path = firstLineSplitted[1];
 	        if(path.equals("/")) path = "/index.html";
-	        path = path.substring(1);
+
+	        //path = path.substring(1); TODO
+
 	        String protocol = firstLineSplitted[2];
+
+	        // Parse headers from client
 	        HeaderData headers = new HeaderData(this.inputs, false);
-	        System.out.println(operation);
+
+	        //TODO test if this case actually works if host header isn't present
+	        if(!headers.map.containsKey("Host")){
+				outputs.writeBytes("400: Bad Request");
+			}
+
+			// Check for correct http version
+			if(!protocol.equals("HTTP/1.1")){
+				outputs.writeBytes("505: HTTP Version Not Supported");
+			}
+
+			// Choose correct handler for client http request
 	        if(operation.equals("GET")){
 	        	this.handleGet(path);
 		        inputs.close();
@@ -74,22 +104,41 @@ class Task implements Runnable {
 	        	this.handlePost(path,headers);
 	        }
 	        else{
-	        	System.out.println("400 Bad Request");
+	        	outputs.writeBytes("400: Bad Request");
 	        }
-	        //TODO handle wrong http version requests: ex. HTTP/1.2
-	        
-	        System.out.println("t is gebeurd"); //lol
 		} catch (IOException e1) {
 			System.out.println("Something wrong with the socket of the server");
 		}
     }
 
 	/**
+	 * Handle the GET request
+	 * @param path The path to the file
+	 * @throws IOException
+	 */
+	private void handleGet(String path) throws IOException {
+		path = path.substring(1);
+		this.handleHead(path);
+		File f = new File(path);
+		if(f.exists() && !f.isDirectory()) {
+			FileReader filer = new FileReader(f);
+			BufferedReader buffr = new BufferedReader(filer);
+
+			String s = buffr.readLine();
+			while (s != null){
+				outputs.writeBytes(s + "\n");
+				s = buffr.readLine();
+			}
+			buffr.close();
+		}
+	}
+
+
+	/**
 	 * Handles the PUT request
 	 * @param path The path to the file
 	 */
 	private void handlePut(String path,HeaderData headers) throws IOException {
-		File f = new File(path);
 		// Parse input of client
 		int length = headers.getContentLength();
 		FileHandler handler = new FileHandler();
@@ -97,7 +146,7 @@ class Task implements Runnable {
 		handler.writeOutputToFile(content,path);
 
 		// Initial server response
-		outputs.writeBytes("HTTP/1.1 200 OK\r\n");
+		outputs.writeBytes("HTTP/1.1: 200 OK\r\n");
 
 		// Send headers
 		outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
@@ -113,7 +162,13 @@ class Task implements Runnable {
 	 * @param path The path to the file
 	 */
 	private void handlePost(String path,HeaderData headers) throws IOException {
-		File f = new File(path);
+		// Slash breaks directory structure
+		String pathNoSlash = path.substring(1);
+
+		// Get possible file at requested location
+		File f = new File(pathNoSlash);
+
+		// Handle case if file does or doesn't exist
 		if(f.exists()){
 			// Get metadata
 			int length = headers.getContentLength();
@@ -121,10 +176,10 @@ class Task implements Runnable {
 			String content = handler.getContent(inputs,length);
 
 			// Append bytes to existing file
-			Files.write(Paths.get(path), content.getBytes(), StandardOpenOption.APPEND);
+			Files.write(Paths.get(pathNoSlash), content.getBytes(), StandardOpenOption.APPEND);
 
 			// Initial server response
-			outputs.writeBytes("HTTP/1.1 200 OK\r\n");
+			outputs.writeBytes("HTTP/1.1: 200 OK\r\n");
 
 			// Send headers
 			outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
@@ -148,11 +203,11 @@ class Task implements Runnable {
 		if(f.exists() && !f.isDirectory()) { 
 		    try {
 		    	System.out.println("length: " + f.length());
-				outputs.writeBytes("HTTP/1.1" + " 200 OK\r\n");
+				outputs.writeBytes("HTTP/1.1:" + " 200 OK\r\n");
 				outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
 				outputs.writeBytes("Content-Length: " + f.length() + "\r\n");
 				outputs.writeBytes("Content-Type: " + this.getFileExtension(f) + "\r\n");
-				outputs.writeBytes("\r\n");
+				outputs.writeBytes("\r\n\r\n");
 				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -161,32 +216,12 @@ class Task implements Runnable {
 		}
 		else{
 			//TODO zo'n code
-			outputs.writeBytes("HTTP/1.1" + " 200 OK\r\n");
+			outputs.writeBytes("HTTP/1.1:" + " 200 OK\r\n");
 		}
 		
 	}
 
-	/**
-	 * Handle the GET request
-	 * @param path The path to the file
-	 * @throws IOException
-	 */
-	private void handleGet(String path) throws IOException {
-		// TODO Send the html file of one of the hosted websites, DON'T FORGET THE HEADERS!
-		this.handleHead(path);
-		File f = new File(path);
-		if(f.exists() && !f.isDirectory()) { 
-			FileReader filer = new FileReader(f);
-			BufferedReader buffr = new BufferedReader(filer);
-			
-			String s = buffr.readLine();
-			while (s != null){
-			  outputs.writeBytes(s + "\n");
-			  s = buffr.readLine();
-			}
-			buffr.close();
-		}
-	}
+
 
 	/**
 	 * @return the current time in the correct format

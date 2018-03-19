@@ -1,5 +1,3 @@
-import org.jsoup.nodes.Element;
-
 import java.io.*;
 
 public class FileHandler {

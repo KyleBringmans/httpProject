@@ -1,4 +1,3 @@
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -15,13 +14,32 @@ import java.net.URISyntaxException;
 
 
 public class Client {
+	//TODO make sure print statements are at the correct spots and no excess ones are still in code
+	//TODO make sure server closes a connection and not the client, check documentation to see what client has to do after server closed the connection
+	//TODO implement if-modified-since header
+	//TODO implement chunked encoding if 'transfer-encoding' header says so, our server needn't support it
+	/**
+	 * Parse http command and select correct command handler
+	 * @param argv Initial http command
+	 * @throws IOException
+	 * @throws URISyntaxException
+	 */
 	public static void main(String argv[]) throws IOException, URISyntaxException{
+		// Check for valid command length
 		if(argv.length != 3) throw new IOException();
+
+		// Get HTTP command (GET,HEAD,PUT,POST)
 		String httpCommand = argv[0];
+
+		// Host and path etc.
 		String uriString = argv[1];
 		URI uri = new URI(uriString);
+
+		// Parse host and path from uri
 		String host = uri.getHost();
 		String path = uri.getRawPath();
+
+		// Case for when path isn't specified
 		if(path == null || path.length() == 0){
 			path = "/";
 		}
@@ -33,7 +51,7 @@ public class Client {
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
 
-
+		// Select correct command handler
 		if(httpCommand.equals("GET")){
 			out.writeBytes(httpCommand + " " + path + " HTTP/1.1\r\n"
 					+ "Host: " + host + "\r\n\r\n");
@@ -57,29 +75,41 @@ public class Client {
 	/**
 	 * Handle the GET command of the client
 	 * @param inFromServer Stream of data from server
-	 * @param socket Socket of where the connection needs to be established
+	 * @param socket Socket of where the connection is established
 	 * @param host The host name
 	 * @throws IOException
 	 */
 	public static void get(DataInputStream inFromServer, Socket socket, String host) throws IOException {
+		// Read new line from server stream and print it
 		System.out.println(inFromServer.readLine());
+
+		// Parse headers
 		HeaderData headers = new HeaderData(inFromServer,true);
 		int length = headers.getContentLength();
 
-		// Only get data if command is GET
+		// Get data
 		FileHandler handler = new FileHandler();
 		String content = handler.getContent(inFromServer, length);
+
+		// Write data to file
 		handler.writeOutputToFile(content, "response.html");
 		
-		File test = new File("response.html");
+		File f = new File("response.html");
 
 		// Parse the html input so images can be found
-		Document doc = Jsoup.parse(test, "UTF-8");
+		// TODO support alle soorten encoding, mss dus charsetName (UTF-8) een variabele maken
+		Document doc = Jsoup.parse(f, "UTF-8");
+
+		// Find images from parsed code
 		Elements elements = doc.getElementsByTag("img");
+
+		// Reconstruct paths for images
 		String[] imgPaths = new String[elements.size()];
 		for(int i = 0; i < elements.size(); i++){
 			imgPaths[i] = findImagePath(elements.get(i));
 		}
+
+		// Write image to file
 		for(String imgPath : imgPaths){
 			writeImageToFile(host, imgPath, socket);
 		}
@@ -92,12 +122,15 @@ public class Client {
 	 * @throws IOException
 	 */
 	public static void head(DataInputStream inFromServer) throws IOException {
+		// Read line from server
 		System.out.println(inFromServer.readLine());
+
+		// Print the header data
 		new HeaderData(inFromServer,true);
 	}
 
 	/**
-	 *
+	 * Handle the PUT command of the client
 	 * @param outFromClient
 	 * @throws IOException
 	 */
@@ -126,11 +159,12 @@ public class Client {
 
 	
 	/**
-	 * Get the content of the image???
+	 * Returns the byte array for an image (Images are saved as bytes in a file)
 	 */
 	public static byte[] getContentForImage(DataInputStream inFromServer, int length) throws IOException{
-		// Read in data
 		byte[] response = new byte[length];
+
+		// Make byte array
 		for(int i = 0; i<length; i++) {
 			response[i] = (byte) inFromServer.read();
 		}
@@ -176,24 +210,33 @@ public class Client {
 	}
 
 	/**
-	 *
+	 * Find path for the image from el
 	 * @param el Part of parsed html code where image path needs to be extracted from
 	 * @return The image path of the element
 	 */
 	public static String findImagePath(Element el){
 		// Parse the image path out of the html command
 		String path = el.toString();
-		System.out.println(path);
+
+		// Parse for image paths (left of regex has to be ignored)
 		String[] split = path.split("src=\"");
+
+		// edge case, if src is upper case
 		if(split.length == 1){
 			split = path.split("SRC=\"");
 		}
-		path = split[1];
-		split = path.split("\"");
-		path = split[0];
-		String[] folders = path.split("/");
 
-		// Make the folder names
+		// Ignore everything before regex
+		path = split[1];
+
+		// Split on (")
+		split = path.split("\"");
+
+		// Ignore everything after second (")
+		path = split[0];
+
+		// Split the directory and the file
+		String[] folders = path.split("/");
 		String newFolders = "";
 		for(int i = 0; i < folders.length -1; i++){
 			newFolders += folders[i] + "/";
@@ -208,5 +251,4 @@ public class Client {
 
 		return "/" + path;
 	}
-	//TODO handle case where content length not in header
 }
