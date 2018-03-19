@@ -9,10 +9,14 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.nio.file.Files;
+
 
 public class Server {
 
@@ -53,20 +57,21 @@ class Task implements Runnable {
 	        HeaderData headers = new HeaderData(this.inputs, false);
 	        System.out.println(operation);
 	        if(operation.equals("GET")){
-	        	this.handleGet(path, protocol);
+	        	this.handleGet(path);
 	        }
 	        else if(operation.equals("HEAD")){
-	        	this.handleHead(path, protocol);
+	        	this.handleHead(path);
 	        }
 	        else if(operation.equals("PUT")){
-	        	this.handlePut(path, protocol);
+	        	this.handlePut(path, headers);
 	        }
 	        else if(operation.equals("POST")){
-	        	this.handlePost(path, protocol);
+	        	this.handlePost(path,headers);
 	        }
 	        else{
 	        	System.out.println("400 Bad Request");
 	        }
+	        //TODO handle wrong http version requests: ex. HTTP/1.2
 	        
 	        inputs.close();
 	        outputs.close();
@@ -77,37 +82,66 @@ class Task implements Runnable {
     }
 
 	/**
-	 * Handles the POST request
-	 * @param path The path to the file
-	 * @param protocol
-	 */
-	private void handlePost(String path, String protocol) {
-		// TODO Add text to end of file
-		
-	}
-
-	/**
 	 * Handles the PUT request
 	 * @param path The path to the file
-	 * @param protocol
 	 */
-	private void handlePut(String path, String protocol) {
-		// TODO Add a new file with the text
-		
+	private void handlePut(String path,HeaderData headers) throws IOException {
+		File f = new File(path);
+		// Parse input of client
+		int length = headers.getContentLength();
+		FileHandler handler = new FileHandler();
+		String content = handler.getContent(this.inputs,length);
+		handler.writeOutputToFile(content,f.getName());
+
+		// Initial server response
+		outputs.writeBytes("HTTP/1.1 200 OK\r\n");
+
+		// Send headers
+		outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
+		outputs.writeBytes("\r\n");
 	}
+
+
+	/**
+	 * Handles the POST request
+	 * @param path The path to the file
+	 */
+	private void handlePost(String path,HeaderData headers) throws IOException {
+		File f = new File(path);
+		if(f.exists()){
+			// Get metadata
+			int length = headers.getContentLength();
+			FileHandler handler = new FileHandler();
+			String content = handler.getContent(inputs,length);
+
+			// Append bytes to existing file
+			Files.write(Paths.get(path), content.getBytes(), StandardOpenOption.APPEND);
+
+			// Initial server response
+			outputs.writeBytes("HTTP/1.1 200 OK\r\n");
+
+			// Send headers
+			outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
+			outputs.writeBytes("\r\n");
+		}
+		else{
+			// Create new file if it doesn't exist yet
+			handlePut(path,headers);
+		}
+	}
+
 
 	/**
 	 * Handles the HEAD request
 	 * @param path The path to the file
-	 * @param protocol
 	 * @throws IOException
 	 */
-	private void handleHead(String path, String protocol) throws IOException {
+	private void handleHead(String path) throws IOException {
 		File f = new File(path);
 		System.out.println(path);
 		if(f.exists() && !f.isDirectory()) { 
 		    try {
-				outputs.writeBytes(protocol + " 200 OK\r\n");
+				outputs.writeBytes("HTTP/1.1" + " 200 OK\r\n");
 				outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
 				outputs.writeBytes("Content-Length: " + f.length() + "\r\n");
 				outputs.writeBytes("Content-Type: " + this.getFileExtension(f) + "\r\n");
@@ -120,7 +154,7 @@ class Task implements Runnable {
 		}
 		else{
 			//TODO zo'n code
-			outputs.writeBytes(protocol + " 200 OK\r\n");
+			outputs.writeBytes("HTTP/1.1" + " 200 OK\r\n");
 		}
 		
 	}
@@ -128,12 +162,11 @@ class Task implements Runnable {
 	/**
 	 * Handle the GET request
 	 * @param path The path to the file
-	 * @param protocol
 	 * @throws IOException
 	 */
-	private void handleGet(String path, String protocol) throws IOException {
+	private void handleGet(String path) throws IOException {
 		// TODO Send the html file of one of the hosted websites, DON'T FORGET THE HEADERS!
-		this.handleHead(path, protocol);
+		this.handleHead(path);
 		File f = new File(path);
 		if(f.exists() && !f.isDirectory()) { 
 			FileReader filer = new FileReader(f);
@@ -172,6 +205,9 @@ class Task implements Runnable {
 	        return "";
 	    }
 	}
+
+
+
 
 	private Socket client;
     private DataInputStream inputs;

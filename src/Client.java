@@ -7,10 +7,8 @@ import org.jsoup.select.Elements;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,19 +29,27 @@ public class Client {
 		System.out.println(port);
 
 		// Establish connection with server
-		Socket socket = new Socket("localhost", port);
+		Socket socket = new Socket(host, port);
 		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 		DataInputStream inFromServer = new DataInputStream(socket.getInputStream());
-		// Get html code from the website
-		out.writeBytes(httpCommand + " " + path + " HTTP/1.1\r\n"
-				+ "Host: " + host + "\r\n\r\n");
 
 		System.out.println(inFromServer.readLine());
+
 		if(httpCommand.equals("GET")){
+			out.writeBytes(httpCommand + " " + path + " HTTP/1.1\r\n"
+					+ "Host: " + host + "\r\n\r\n");
 			get(inFromServer,socket,host);
 		}
 		else if(httpCommand.equals("HEAD")){
+			out.writeBytes(httpCommand + " " + path + " HTTP/1.1\r\n"
+					+ "Host: " + host + "\r\n\r\n");
 			head(inFromServer);
+		}
+		// PUT and POST look the same from the client side
+		else if(httpCommand.equals("PUT") || httpCommand.equals("POST")){
+			out.writeBytes(httpCommand + " " + path + " HTTP/1.1\r\n"
+					+ "Host: " + host + "\r\n");
+			put(out);
 		}
 		socket.close();
 
@@ -62,8 +68,9 @@ public class Client {
 		int length = headers.getContentLength();
 
 		// Only get data if command is GET
-		String content = getContent(inFromServer, length);
-		writeOutputToFile(content, "response.html");
+		FileHandler handler = new FileHandler();
+		String content = handler.getContent(inFromServer, length);
+		handler.writeOutputToFile(content, "response.html");
 
 		File test = new File("response.html");
 
@@ -91,33 +98,33 @@ public class Client {
 	}
 
 	/**
-	 * Write some data to a file
-	 * @param content The content of the to-be file
-	 * @param fileName The file name
-	 * @throws FileNotFoundException
-	 */
-	public static void writeOutputToFile(String content, String fileName) throws FileNotFoundException{
-		PrintWriter writer = new PrintWriter(fileName);
-		writer.print(content);
-		writer.close();
-	}
-
-	/**
-	 * Get content from a server after sending an initial GET request
-	 * @param inFromServer Stream of data from server
-	 * @param length Length of the data
-	 * @return The html data from the server hosted website
+	 *
+	 * @param outFromClient
 	 * @throws IOException
 	 */
-	public static String getContent(DataInputStream inFromServer, int length) throws IOException{
-		// Get data from server
-		StringBuilder response = new StringBuilder();
-		for(int i = 0; i<length; i++) {
-			response.append((char) inFromServer.read());
+	public static void put(DataOutputStream outFromClient) throws IOException{
+		// Open input stream from user
+		DataInputStream in = new DataInputStream(System.in);
+
+		// Parse input
+		String content = "";
+		String line = in.readLine();
+		while(!line.equals("")){
+			content += line + "\r\n";
+			line = in.readLine();
 		}
-		System.out.println(response);
-		return response.toString();
+
+		// Send headers
+		int length = content.length();
+		outFromClient.writeBytes("Content-Length: " + length + "\r\n");
+		outFromClient.writeBytes("Content-Type: text/txt" + "\r\n"); //TODO
+		outFromClient.writeBytes("\r\n");
+
+		// Send file content
+		outFromClient.writeBytes(content);
 	}
+
+
 	
 	/**
 	 * Get the content of the image???
@@ -170,6 +177,7 @@ public class Client {
 	}
 
 	/**
+	 *
 	 * @param el Part of parsed html code where image path needs to be extracted from
 	 * @return The image path of the element
 	 */
