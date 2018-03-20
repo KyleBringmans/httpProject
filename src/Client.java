@@ -3,11 +3,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -16,7 +12,6 @@ import java.net.URISyntaxException;
 public class Client {
 	//TODO make sure print statements are at the correct spots and no excess ones are still in code
 	//TODO make sure server closes a connection and not the client, check documentation to see what client has to do after server closed the connection
-	//TODO implement if-modified-since header
 	//TODO implement chunked encoding if 'transfer-encoding' header says so, our server needn't support it
 	/**
 	 * Parse http command and select correct command handler
@@ -85,15 +80,21 @@ public class Client {
 
 		// Parse headers
 		HeaderData headers = new HeaderData(inFromServer,true);
-		int length = headers.getContentLength();
 
-		// Get data
 		FileHandler handler = new FileHandler();
-		String content = handler.getContent(inFromServer, length);
+
+		String content;
+		if(headers.map.get("Transfer-Encoding").equals("chunked")){
+			content = chunked(inFromServer,socket,host);
+		}
+		else{
+			int length = headers.getContentLength();
+			content = handler.getContent(inFromServer, length);
+		}
 
 		// Write data to file
 		handler.writeOutputToFile(content, "response.html");
-		
+
 		File f = new File("response.html");
 
 		// Parse the html input so images can be found
@@ -105,14 +106,36 @@ public class Client {
 
 		// Reconstruct paths for images
 		String[] imgPaths = new String[elements.size()];
-		for(int i = 0; i < elements.size(); i++){
+		for (int i = 0; i < elements.size(); i++) {
 			imgPaths[i] = findImagePath(elements.get(i));
 		}
 
 		// Write image to file
-		for(String imgPath : imgPaths){
+		for (String imgPath : imgPaths) {
 			writeImageToFile(host, imgPath, socket);
 		}
+	}
+
+	public static String chunked(DataInputStream inFromServer, Socket socket, String host) throws IOException {
+		ByteArrayOutputStream content = new ByteArrayOutputStream();
+		String input = inFromServer.readLine();
+		Byte b = 0;
+		int length;
+		while(!input.equals("0")){
+			if(input.equals("")){
+				length = 0;
+			}else {
+				length = Integer.parseInt(input.split("\r\n")[0], 16);
+			}
+			for(int i = 0; i<length; i++) {
+				b = inFromServer.readByte();
+				content.write(b);
+			}
+			input = inFromServer.readLine();
+
+		}
+		inFromServer.readLine();
+		return content.toString();
 
 	}
 
