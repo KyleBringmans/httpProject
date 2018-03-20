@@ -84,7 +84,7 @@ public class Client {
 		FileHandler handler = new FileHandler();
 
 		String content;
-		if(headers.map.get("Transfer-Encoding").equals("chunked")){
+		if(headers.map.get("Transfer-Encoding") != null && headers.map.get("Transfer-Encoding").equals("chunked")){
 			content = chunked(inFromServer,socket,host);
 		}
 		else{
@@ -121,6 +121,7 @@ public class Client {
 		String input = inFromServer.readLine();
 		Byte b = 0;
 		int length;
+        StringBuilder response = new StringBuilder();
 		while(!input.equals("0")){
 			if(input.equals("")){
 				length = 0;
@@ -130,10 +131,12 @@ public class Client {
 			for(int i = 0; i<length; i++) {
 				b = inFromServer.readByte();
 				content.write(b);
+				response.append((char) (int) b);
 			}
 			input = inFromServer.readLine();
 
 		}
+		System.out.println(response);
 		inFromServer.readLine();
 		return content.toString();
 
@@ -224,6 +227,8 @@ public class Client {
 		String dirName = imagePath.substring(0, imagePath.length() - temp[temp.length-1].length());
 		dirName = dirName.replace("%20", " ");
 		String fileName = temp[temp.length-1];
+		FileHandler handler = new FileHandler();
+		handler.makeFolders(imagePath.substring(1));
 		File dir = new File (System.getProperty("user.dir") + dirName);
 		File file = new File (dir, fileName);
 
