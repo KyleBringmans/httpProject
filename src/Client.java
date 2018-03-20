@@ -217,6 +217,9 @@ public class Client {
 		byte[] content = getContentForImage(inFromServer, length);
 
 		// Make directory
+		if(imagePath.startsWith("//")){
+			imagePath = imagePath.replaceFirst("/","");
+		}
 		String[] temp = imagePath.split("/");
 		String dirName = imagePath.substring(0, imagePath.length() - temp[temp.length-1].length());
 		dirName = dirName.replace("%20", " ");
