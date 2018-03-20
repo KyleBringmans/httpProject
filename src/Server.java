@@ -9,8 +9,10 @@ import java.net.Socket;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.nio.file.Files;
@@ -88,12 +90,12 @@ class Task implements Runnable {
 
 			// Choose correct handler for client http request
 	        if(operation.equals("GET")){
-	        	this.handleGet(path);
+	        	this.handleGet(path, headers);
 		        inputs.close();
 		        outputs.close();
 	        }
 	        else if(operation.equals("HEAD")){
-	        	this.handleHead(path);
+	        	this.handleHead(path, headers);
 		        inputs.close();
 		        outputs.close();
 	        }
@@ -116,10 +118,17 @@ class Task implements Runnable {
 	 * @param path The path to the file
 	 * @throws IOException
 	 */
-	private void handleGet(String path) throws IOException {
+	private void handleGet(String path, HeaderData headers) throws IOException {
 		path = path.substring(1);
-		this.handleHead(path);
 		File f = new File(path);
+		String ifModifiedSince = headers.getIfModifiedSince();
+		if(f.exists() && ifModifiedSince != null && !modifiedAfterDate(ifModifiedSince, f)){
+			outputs.writeBytes("HTTP/1.1:" + " 304 Not Modified\r\n");
+			outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
+			outputs.writeBytes("\r\n");
+			return;
+		}
+		this.handleHead(path, headers);
 		if(f.exists() && !f.isDirectory()) {
 			FileReader filer = new FileReader(f);
 			BufferedReader buffr = new BufferedReader(filer);
@@ -197,9 +206,16 @@ class Task implements Runnable {
 	 * @param path The path to the file
 	 * @throws IOException
 	 */
-	private void handleHead(String path) throws IOException {
+	private void handleHead(String path, HeaderData headers) throws IOException {
 		File f = new File(path);
 		System.out.println(path);
+		String ifModifiedSince = headers.getIfModifiedSince();
+		if(f.exists() && ifModifiedSince != null && !modifiedAfterDate(ifModifiedSince, f)){
+			outputs.writeBytes("HTTP/1.1:" + " 304 Not Modified\r\n");
+			outputs.writeBytes("Date: " + this.getServerTime() + "\r\n");
+			outputs.writeBytes("\r\n");
+			return;
+		}
 		if(f.exists() && !f.isDirectory()) { 
 		    try {
 		    	System.out.println("length: " + f.length());
@@ -246,6 +262,19 @@ class Task implements Runnable {
 	    } catch (Exception e) {
 	        return "";
 	    }
+	}
+	
+	private boolean modifiedAfterDate(String dateAsString, File file){
+	    SimpleDateFormat dateFormat = new SimpleDateFormat(
+	        "EEE, dd MMM yyyy HH:mm:ss z", Locale.UK);
+	    Date date;
+		try {
+			date = dateFormat.parse(dateAsString);
+		    Date lastModifiedDate = dateFormat.parse(dateFormat.format(file.lastModified()));
+		    return lastModifiedDate.after(date);
+		} catch (ParseException e) {
+			return false;
+		}
 	}
 
 
