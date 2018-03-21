@@ -10,9 +10,6 @@ import java.net.URISyntaxException;
 
 
 public class Client {
-	//TODO make sure print statements are at the correct spots and no excess ones are still in code
-	//TODO make sure server closes a connection and not the client, check documentation to see what client has to do after server closed the connection
-	//TODO implement chunked encoding if 'transfer-encoding' header says so, our server needn't support it
 	/**
 	 * Parse http command and select correct command handler
 	 * @param argv Initial http command
@@ -100,7 +97,6 @@ public class Client {
 		File f = new File("response.html");
 
 		// Parse the html input so images can be found
-		// TODO support alle soorten encoding, mss dus charsetName (UTF-8) een variabele maken
 		Document doc = Jsoup.parse(f, "UTF-8");
 
 		// Find images from parsed code
@@ -118,28 +114,52 @@ public class Client {
 		}
 	}
 
+	/**
+	 * Support for chunking of data
+	 * @param inFromServer inputstream from server
+	 * @param socket the socket for the connection
+	 * @param host the host
+	 * @return string of data
+	 * @throws IOException
+	 */
 	public static String chunked(DataInputStream inFromServer, Socket socket, String host) throws IOException {
+		// Stream to store read bytes in
 		ByteArrayOutputStream content = new ByteArrayOutputStream();
+
+		// Read input from server (gets the size of the first chunk)
 		String input = inFromServer.readLine();
-		Byte b = 0;
+
+		Byte b;
 		int length;
+
         StringBuilder response = new StringBuilder();
+
+        // Keep reading chunks and read new chunk sizes
 		while(!input.equals("0")){
 			if(input.equals("")){
 				length = 0;
 			}else {
+				// Convert hexadecimal numbers to decimals
 				length = Integer.parseInt(input.split("\r\n")[0], 16);
 			}
+
+			// Read in the chunk
 			for(int i = 0; i<length; i++) {
 				b = inFromServer.readByte();
 				content.write(b);
 				response.append((char) (int) b);
 			}
+
+			// Read new chunk size
 			input = inFromServer.readLine();
 
 		}
+
 		System.out.println(response);
+
+		// Read in last newline of chunked message
 		inFromServer.readLine();
+
 		return content.toString();
 
 	}
@@ -218,6 +238,8 @@ public class Client {
 
 		// Make header for ImageFile
 		HeaderData headers = new HeaderData(inFromServer,false);
+
+
 		int length = headers.getContentLength();
 		byte[] content = getContentForImage(inFromServer, length);
 

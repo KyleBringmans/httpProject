@@ -64,14 +64,12 @@ class Task implements Runnable {
 	        String path = firstLineSplitted[1];
 	        if(path.equals("/")) path = "/index.html";
 
-	        //path = path.substring(1); TODO
 
 	        String protocol = firstLineSplitted[2];
 
 	        // Parse headers from client
 	        HeaderData headers = new HeaderData(this.inputs, false);
 
-	        //TODO test if this case actually works if host header isn't present
 	        if(!headers.map.containsKey("Host")){
 				outputs.writeBytes("400: Bad Request");
 			}
@@ -102,7 +100,11 @@ class Task implements Runnable {
 	        	outputs.writeBytes("400: Bad Request");
 	        }
 		} catch (IOException e1) {
-			System.out.println("Something wrong with the socket of the server");
+			try {
+				outputs.writeBytes("HTTP/1.1:" + " 304 Not Modified\r\n");
+			} catch (IOException e) {
+				System.out.println("Lost connection with client");
+			}
 		}
     }
 
@@ -132,6 +134,9 @@ class Task implements Runnable {
 				s = buffr.readLine();
 			}
 			buffr.close();
+		}
+		else{
+			outputs.writeBytes("HTTP/1.1" + "404 Not Found\r\n");
 		}
 	}
 
@@ -219,13 +224,11 @@ class Task implements Runnable {
 				outputs.writeBytes("\r\n\r\n");
 				
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 		else{
-			//TODO zo'n code
-			outputs.writeBytes("HTTP/1.1:" + " 200 OK\r\n");
+			outputs.writeBytes("HTTP/1.1:" + " 404 Not Found\r\n");
 		}
 		
 	}
