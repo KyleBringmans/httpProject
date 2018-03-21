@@ -17,9 +17,9 @@ public class FileHandler {
     }
 
     public void writeOutputToFile(String content, String pathName) throws IOException {
-    	//TODO: i put this here so it will have to be removed some places or it will be called twice
-    	makeFolders(pathName);
-    	System.out.println(pathName);
+        // Make the folders so the file can be written in the right place
+    	makeFolders(pathName.substring(1));
+
         String[] inputs = pathName.split("/");
         // Find directory name
         String dirName = pathName.substring(0, pathName.length() - inputs[inputs.length-1].length());

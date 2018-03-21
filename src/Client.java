@@ -39,7 +39,6 @@ public class Client {
 			path = "/";
 		}
 		int port = Integer.parseInt(argv[2]);
-		System.out.println(port);
 
 		// Establish connection with server
 		Socket socket = new Socket(host, port);
@@ -80,6 +79,8 @@ public class Client {
 
 		// Parse headers
 		HeaderData headers = new HeaderData(inFromServer,true);
+		// For visual reasons
+		System.out.println("\n");
 
 		FileHandler handler = new FileHandler();
 
@@ -87,6 +88,7 @@ public class Client {
 		if(headers.map.get("Transfer-Encoding") != null && headers.map.get("Transfer-Encoding").equals("chunked")){
 			content = chunked(inFromServer,socket,host);
 		}
+		// Use content-length header
 		else{
 			int length = headers.getContentLength();
 			content = handler.getContent(inFromServer, length);

@@ -23,22 +23,15 @@ public class Server {
 	/**
 	 * Create new threads for each http request
 	 */
-    public static void main(String argv[]) throws IOException, URISyntaxException {
-    	long timeout = 10000;
-        // Initialize a socket at port X
-        ServerSocket socket = new ServerSocket(3000);
+	public static void main(String argv[]) throws IOException, URISyntaxException {
+		// Initialize a socket at port X
+		ServerSocket socket = new ServerSocket(3000);
 
-		long start = System.currentTimeMillis();
-		long end = start + timeout;
-		// Check for server time-out and take requests
-		while(System.currentTimeMillis() < end){
-			//TODO dit werkt niet meer denk ik, we moeten op een of andere manier wachten op een request, hoe?
-            Socket client = socket.accept();
-            new Thread(new Task(client)).start();
-        }
-        // TODO wat met de client socket? moet die ook dicht?
-        socket.close();
-    }
+		while(true){
+			Socket client = socket.accept();
+			new Thread(new Task(client)).start();
+		}
+	}
 }
 
 /**
